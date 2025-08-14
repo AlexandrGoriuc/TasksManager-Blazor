@@ -1,4 +1,5 @@
 ﻿@page "/tasks"
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 <h3>My Tasks</h3>
 
@@ -10,29 +11,26 @@
 
 @if (tasks.Count == 0)
 {
-    <p class="text-muted">No tasks</p> 
-}
-else
-{
-    <ul class="list-group">
+<p class="text-muted">No tasks</p> }
+            else
+            {
+<ul class="list-group">
     @foreach (var task in tasks)
     {
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-                <input type="checkbox" @bind="task.IsDone" class="form-check-input me-2" />
-                <span style="@(task.IsDone ? "text-decoration: line-through;" : "")">
-                    @task.Title
-                </span>
-            </div>
-            <button class="btn btn-sm btn-danger" @onclick="@(() => RemoveTask(task))">
-                Delete
-            </button>
-        </li>
-    }
-    </ul>
-}
+<li class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+        <input type="checkbox" @onchange="(e) => OnCheckboxChanged(e, task)" class="form-check-input me-2" />
+        <span style="@(task.IsDone ? "text-decoration: line-through;" : "")">
+            @task.Title
+        </span>
+    </div>
+    <button class="btn btn-sm btn-danger" @onclick="@(() => RemoveTask(task))">
+        Delete
+    </button>
+</li>}
+</ul>}
 
-@code { 
+@code {
     string newTask = string.Empty;
 
     class TaskItem
@@ -43,17 +41,36 @@ else
 
     List<TaskItem> tasks = new();
 
-    void AddTask()
+    protected override async Task OnInitializedAsync()
+    {
+        var savedTasks = await localStorage.GetItemAsync<List<TaskItem>>("tasks");
+        if (savedTasks != null)
+            tasks = savedTasks;
+    }
+
+    async Task AddTask()
     {
         if (!string.IsNullOrWhiteSpace(newTask))
         {
             tasks.Add(new TaskItem { Title = newTask, IsDone = false });
             newTask = string.Empty;
+            await SaveTasks();
         }
     }
 
-    void RemoveTask(TaskItem task)
+    async Task RemoveTask(TaskItem task)
     {
         tasks.Remove(task);
-    } 
-}
+        await SaveTasks();
+    }
+
+    async void OnCheckboxChanged(ChangeEventArgs e, TaskItem task)
+    {
+        task.IsDone = (bool)e.Value;
+        await SaveTasks();
+    }
+
+    async Task SaveTasks()
+    {
+        await localStorage.SetItemAsync("tasks", tasks);
+    } }
