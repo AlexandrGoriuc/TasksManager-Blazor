@@ -1,0 +1,59 @@
+﻿@page "/tasks"
+
+<h3>My Tasks</h3>
+
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Enter a task"
+           @bind="newTask" />
+    <button class="btn btn-primary" @onclick="AddTask">Add</button>
+</div>
+
+@if (tasks.Count == 0)
+{
+    <p class="text-muted">No tasks</p> 
+}
+else
+{
+    <ul class="list-group">
+    @foreach (var task in tasks)
+    {
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <input type="checkbox" @bind="task.IsDone" class="form-check-input me-2" />
+                <span style="@(task.IsDone ? "text-decoration: line-through;" : "")">
+                    @task.Title
+                </span>
+            </div>
+            <button class="btn btn-sm btn-danger" @onclick="@(() => RemoveTask(task))">
+                Delete
+            </button>
+        </li>
+    }
+    </ul>
+}
+
+@code { 
+    string newTask = string.Empty;
+
+    class TaskItem
+    {
+        public string Title { get; set; }
+        public bool IsDone { get; set; }
+    }
+
+    List<TaskItem> tasks = new();
+
+    void AddTask()
+    {
+        if (!string.IsNullOrWhiteSpace(newTask))
+        {
+            tasks.Add(new TaskItem { Title = newTask, IsDone = false });
+            newTask = string.Empty;
+        }
+    }
+
+    void RemoveTask(TaskItem task)
+    {
+        tasks.Remove(task);
+    } 
+}
