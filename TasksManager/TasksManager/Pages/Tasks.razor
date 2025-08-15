@@ -83,10 +83,10 @@ else
     List<TaskItem> tasks = new();
     List<Category> categories = new()
     {
-            new Category { Id = 1, Name = "Work" },
-            new Category { Id = 2, Name = "Study" },
-            new Category { Id = 3, Name = "Personal" },
-        };
+        new Category { Id = 1, Name = "Work" },
+        new Category { Id = 2, Name = "Study" },
+        new Category { Id = 3, Name = "Personal" },
+    };
 
     List<TaskItem> FilteredTasks =>
         currentFilter switch
@@ -96,12 +96,13 @@ else
             _ => tasks
         };
 
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var savedTasks = await localStorage.GetItemAsync<List<TaskItem>>("tasks");
-        if (savedTasks != null)
+        if (firstRender)
         {
-            tasks = savedTasks;
+            tasks = await localStorage.GetItemAsync<List<TaskItem>>("tasks") ?? new List<TaskItem>();
+            StateHasChanged();
         }
     }
 
