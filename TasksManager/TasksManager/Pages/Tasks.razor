@@ -6,7 +6,27 @@
 <div class="input-group mb-3">
     <input type="text" class="form-control" placeholder="Enter a task"
            @bind="newTask" />
+
+    <select class="form-select" @bind="selectedCategoryId">
+        @foreach (var category in categories)
+        {
+            <option value="@category.Id">@category.Name</option>
+        }
+    </select>
+
     <button class="btn btn-primary" @onclick="AddTask">Add</button>
+</div>
+
+<div class="btn-group mb-3">
+    <button class="btn btn-outline-secondary" @onclick="@(()=>ChangeFilter("all"))">
+        All
+    </button>
+    <button class="btn btn-outline-secondary" @onclick="@(()=>ChangeFilter("active"))">
+        Active
+    </button>
+    <button class="btn btn-outline-secondary" @onclick="@(()=>ChangeFilter("done"))">
+        Done
+    </button>
 </div>
 
 @if (tasks.Count == 0)
@@ -15,7 +35,7 @@
             else
             {
 <ul class="list-group">
-    @foreach (var task in tasks)
+    @foreach (var task in FilteredTasks)
     {
 <li class="list-group-item d-flex justify-content-between align-items-center">
     <div>
@@ -23,6 +43,7 @@
         <span style="@(task.IsDone ? "text-decoration: line-through;" : "")">
             @task.Title
         </span>
+        <small class="text-muted">[ @categories.FirstOrDefault(c => c.Id == task.CategoryId)?.Name ]</small>
     </div>
     <button class="btn btn-sm btn-danger" @onclick="@(() => RemoveTask(task))">
         Delete
@@ -30,47 +51,78 @@
 </li>}
 </ul>}
 
-@code {
-    string newTask = string.Empty;
+@code { string newTask = string.Empty;
+            string currentFilter = "all";
+            int selectedCategoryId = 1;
 
-    class TaskItem
-    {
-        public string Title { get; set; }
-        public bool IsDone { get; set; }
-    }
+            class TaskItem
+            {
+                public string Title { get; set; }
+                public bool IsDone { get; set; }
+                public int CategoryId { get; set; }
+            }
 
-    List<TaskItem> tasks = new();
+            class Category
+            {
+                public int Id { get; set; }
+                public string Name { get; set; }
+            }
 
-    protected override async Task OnInitializedAsync()
-    {
-        var savedTasks = await localStorage.GetItemAsync<List<TaskItem>>("tasks");
-        if (savedTasks != null)
-            tasks = savedTasks;
-    }
+            List<TaskItem> tasks = new();
+            List<Category> categories = new()
+            {
+            new Category { Id = 1, Name = "Work" },
+            new Category { Id = 2, Name = "Study" },
+            new Category { Id = 3, Name = "Personal" },
+        };
 
-    async Task AddTask()
-    {
-        if (!string.IsNullOrWhiteSpace(newTask))
-        {
-            tasks.Add(new TaskItem { Title = newTask, IsDone = false });
-            newTask = string.Empty;
-            await SaveTasks();
-        }
-    }
+            List<TaskItem> FilteredTasks =>
+                currentFilter switch
+                {
+                    "active" => tasks.Where(t => !t.IsDone).ToList(),
+                    "done" => tasks.Where(t => t.IsDone).ToList(),
+                    _ => tasks
+                };
 
-    async Task RemoveTask(TaskItem task)
-    {
-        tasks.Remove(task);
-        await SaveTasks();
-    }
+            protected override async Task OnInitializedAsync()
+            {
+                var savedTasks = await localStorage.GetItemAsync<List<TaskItem>>("tasks");
+                if (savedTasks != null)
+                {
+                    tasks = savedTasks;
+                }
+            }
 
-    async void OnCheckboxChanged(ChangeEventArgs e, TaskItem task)
-    {
-        task.IsDone = (bool)e.Value;
-        await SaveTasks();
-    }
+            async Task AddTask()
+            {
+                if (!string.IsNullOrWhiteSpace(newTask))
+                {
+                    tasks.Add(new TaskItem { Title = newTask, IsDone = false, CategoryId = selectedCategoryId });
+                    newTask = string.Empty;
+                    await SaveTasks();
+                }
+            }
 
-    async Task SaveTasks()
-    {
-        await localStorage.SetItemAsync("tasks", tasks);
-    } }
+            async Task RemoveTask(TaskItem task)
+            {
+                tasks.Remove(task);
+                await SaveTasks();
+            }
+
+            async void OnCheckboxChanged(ChangeEventArgs e, TaskItem task)
+            {
+                task.IsDone = (bool)e.Value;
+                await SaveTasks();
+            }
+
+            async Task SaveTasks()
+            {
+                await localStorage.SetItemAsync("tasks", tasks);
+            }
+
+            void ChangeFilter(string filter)
+            {
+                currentFilter = filter;
+            }
+
+}
